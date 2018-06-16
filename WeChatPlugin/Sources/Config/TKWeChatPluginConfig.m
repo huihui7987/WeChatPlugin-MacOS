@@ -10,13 +10,16 @@
 #import "TKRemoteControlModel.h"
 #import "TKAutoReplyModel.h"
 #import "TKIgnoreSessonModel.h"
+#import "WeChatPlugin.h"
 
 static NSString * const kTKPreventRevokeEnableKey = @"kTKPreventRevokeEnableKey";
+static NSString * const kTKAutoReplyEnableKey = @"kTKAutoReplyEnableKey";
 static NSString * const kTKAutoAuthEnableKey = @"kTKAutoAuthEnableKey";
 static NSString * const kTKAutoLoginEnableKey = @"kTKAutoLoginEnableKey";
 static NSString * const kTKOnTopKey = @"kTKOnTopKey";
 static NSString * const kTKForbidCheckVersionKey = @"kTKForbidCheckVersionKey";
 static NSString * const kTKWeChatResourcesPath = @"/Applications/WeChat.app/Contents/MacOS/WeChatPlugin.framework/Resources/";
+static NSString * const kTKWeChatRemotePlistPath = @"https://raw.githubusercontent.com/TKkk-iOSer/WeChatPlugin-MacOS/master/Other/Products/Debug/WeChatPlugin.framework/Resources/Info.plist";
 
 @interface TKWeChatPluginConfig ()
 
@@ -44,6 +47,7 @@ static NSString * const kTKWeChatResourcesPath = @"/Applications/WeChat.app/Cont
     self = [super init];
     if (self) {
         _preventRevokeEnable = [[NSUserDefaults standardUserDefaults] boolForKey:kTKPreventRevokeEnableKey];
+        _autoReplyEnable = [[NSUserDefaults standardUserDefaults] boolForKey:kTKAutoReplyEnableKey];
         _autoAuthEnable = [[NSUserDefaults standardUserDefaults] boolForKey:kTKAutoAuthEnableKey];
         _autoLoginEnable = [[NSUserDefaults standardUserDefaults] boolForKey:kTKAutoLoginEnableKey];
         _onTop = [[NSUserDefaults standardUserDefaults] boolForKey:kTKOnTopKey];
@@ -55,6 +59,12 @@ static NSString * const kTKWeChatResourcesPath = @"/Applications/WeChat.app/Cont
 - (void)setPreventRevokeEnable:(BOOL)preventRevokeEnable {
     _preventRevokeEnable = preventRevokeEnable;
     [[NSUserDefaults standardUserDefaults] setBool:preventRevokeEnable forKey:kTKPreventRevokeEnableKey];
+    [[NSUserDefaults standardUserDefaults] synchronize];
+}
+
+- (void)setAutoReplyEnable:(BOOL)autoReplyEnable {
+    _autoReplyEnable = autoReplyEnable;
+    [[NSUserDefaults standardUserDefaults] setBool:autoReplyEnable forKey:kTKAutoReplyEnableKey];
     [[NSUserDefaults standardUserDefaults] synchronize];
 }
 
@@ -107,6 +117,7 @@ static NSString * const kTKWeChatResourcesPath = @"/Applications/WeChat.app/Cont
 #pragma mark - 远程控制
 - (NSArray *)remoteControlModels {
     if (!_remoteControlModels) {
+        __block BOOL needSaveRemoteControlModels = NO;
         _remoteControlModels = ({
             NSArray *originModels = [NSArray arrayWithContentsOfFile:self.remoteControlPlistFilePath];
             NSMutableArray *newRemoteControlModels = [NSMutableArray array];
@@ -114,12 +125,19 @@ static NSString * const kTKWeChatResourcesPath = @"/Applications/WeChat.app/Cont
                 NSMutableArray *newSubModels = [NSMutableArray array];
                 [subModels enumerateObjectsUsingBlock:^(id  _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
                     TKRemoteControlModel *model = [[TKRemoteControlModel alloc] initWithDict:obj];
+                    if ([model.executeCommand isEqualToString:@"restartWeChat"]) {
+                        model.executeCommand = @"killWeChat";
+                        needSaveRemoteControlModels = YES;
+                    }
                     [newSubModels addObject:model];
                 }];
                 [newRemoteControlModels addObject:newSubModels];
             }];
             newRemoteControlModels;
         });
+        if (needSaveRemoteControlModels) {
+            [self saveRemoteControlModels];
+        }
     }
     return _remoteControlModels;
 }
@@ -203,7 +221,7 @@ static NSString * const kTKWeChatResourcesPath = @"/Applications/WeChat.app/Cont
 
 - (NSDictionary *)romoteInfoPlist {
     if (!_romoteInfoPlist) {
-        NSURL *url = [NSURL URLWithString:@"https://raw.githubusercontent.com/TKkk-iOSer/WeChatPlugin-MacOS/master/Other/Products/Debug/WeChatPlugin.framework/Resources/Info.plist"];
+        NSURL *url = [NSURL URLWithString:kTKWeChatRemotePlistPath];
         _romoteInfoPlist = [NSDictionary dictionaryWithContentsOfURL:url];
     }
     return _romoteInfoPlist;
@@ -224,7 +242,10 @@ static NSString * const kTKWeChatResourcesPath = @"/Applications/WeChat.app/Cont
 
 - (NSString *)getSandboxFilePathWithPlistName:(NSString *)plistName {
     NSFileManager *manager = [NSFileManager defaultManager];
-    NSString *wechatPluginDirectory = [[NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) firstObject] stringByAppendingPathComponent:@"TKWeChatPlugin"];
+    NSString *currentUserName = [objc_getClass("CUtility") GetCurrentUserName];
+    
+    NSString *documentDirectory = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) firstObject];
+    NSString *wechatPluginDirectory = [documentDirectory stringByAppendingFormat:@"/TKWeChatPlugin/%@/",currentUserName];
     NSString *plistFilePath = [wechatPluginDirectory stringByAppendingPathComponent:plistName];
     if ([manager fileExistsAtPath:plistFilePath]) {
         return plistFilePath;

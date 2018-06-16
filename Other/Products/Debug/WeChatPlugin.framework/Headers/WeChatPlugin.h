@@ -15,6 +15,10 @@ FOUNDATION_EXPORT const unsigned char WeChatPluginVersionString[];
 
 #pragma mark - 微信原始的部分类与方法
 
+@interface MMBrandChatsViewController : NSObject
+- (void)startChatWithContact:(id)arg1;
+@end
+
 @interface MMLoginOneClickViewController : NSViewController
 @property(nonatomic) NSTextField *descriptionLabel;
 - (void)onLoginButtonClicked:(id)arg1;
@@ -49,6 +53,7 @@ FOUNDATION_EXPORT const unsigned char WeChatPluginVersionString[];
 - (void)AddLocalMsg:(id)arg1 msgData:(id)arg2;
 - (void)TranscribeVoiceMessage:(id)arg1 completion:(void (^)(void))arg2;
 - (BOOL)ClearUnRead:(id)arg1 FromID:(unsigned int)arg2 ToID:(unsigned int)arg3;
+- (BOOL)hasMsgInChat:(id)arg1;
 @end
 
 @interface MMServiceCenter : NSObject
@@ -71,6 +76,7 @@ FOUNDATION_EXPORT const unsigned char WeChatPluginVersionString[];
 
 @interface MMChatsViewController : NSViewController <NSTableViewDataSource, NSTableViewDelegate>
 @property(nonatomic) __weak NSTableView *tableView;
+@property(retain, nonatomic) MMBrandChatsViewController *brandChatsViewController;
 @end
 
 @interface WeChat : NSObject
@@ -79,12 +85,24 @@ FOUNDATION_EXPORT const unsigned char WeChatPluginVersionString[];
 @property(retain, nonatomic) MMMainWindowController *mainWindowController;
 @property(nonatomic) BOOL isAppTerminating;
 - (void)startANewChatWithContact:(id)arg1;
+- (void)_clearAllUnreadMessages:(id)arg1;
 - (void)onAuthOK:(BOOL)arg1;
+@property(nonatomic) BOOL hasAuthOK;
 @end
 
 @interface ContactStorage : NSObject
 - (id)GetSelfContact;
 - (id)GetContact:(id)arg1;
+- (id)GetAllBrandContacts;
+- (id)GetAllFavContacts;
+- (id)GetAllFriendContacts;
+@end
+
+@interface GroupStorage : NSObject
+{
+    NSMutableDictionary *m_dictGroupContacts;
+}
+- (id)GetAllGroups;
 @end
 
 @interface WCContactData : NSObject
@@ -93,9 +111,11 @@ FOUNDATION_EXPORT const unsigned char WeChatPluginVersionString[];
 @property(retain, nonatomic) NSString *m_nsNickName;    // 用户昵称
 @property(retain, nonatomic) NSString *m_nsRemark;      // 备注
 @property(retain, nonatomic) NSString *m_nsHeadImgUrl;  // 头像
+@property(nonatomic) BOOL m_isShowRedDot; 
 - (BOOL)isBrandContact;
 - (BOOL)isSelf;
 - (id)getGroupDisplayName;
+
 @end
 
 @interface MessageData : NSObject
@@ -119,6 +139,7 @@ FOUNDATION_EXPORT const unsigned char WeChatPluginVersionString[];
 - (BOOL)isImgMsg;
 - (BOOL)isVideoMsg;
 - (BOOL)isVoiceMsg;
+- (BOOL)canForward;
 @end
 
 @interface CUtility : NSObject
@@ -127,13 +148,16 @@ FOUNDATION_EXPORT const unsigned char WeChatPluginVersionString[];
 + (void)ReloadSessionForMsgSync;
 + (id)GetCurrentUserName;
 @end
+@interface MMSessionInfoPackedInfo: NSObject
+@property(retain, nonatomic) WCContactData *m_contact;
+@end
 
 @interface MMSessionInfo : NSObject
 @property(nonatomic) BOOL m_bIsTop; // @synthesize m_bIsTop;
 @property(nonatomic) BOOL m_bShowUnReadAsRedDot;
 @property(nonatomic) BOOL m_isMentionedUnread; // @synthesize
 @property(retain, nonatomic) NSString *m_nsUserName; // @synthesize m_nsUserName;
-@property(retain, nonatomic) WCContactData *m_contact;
+@property(retain, nonatomic) MMSessionInfoPackedInfo *m_packedInfo;
 @end
 
 @protocol MMChatsTableCellViewDelegate <NSObject>
@@ -218,4 +242,59 @@ FOUNDATION_EXPORT const unsigned char WeChatPluginVersionString[];
 
 @interface NSString (MD5)
 - (id)md5String;
+@end
+
+@interface MMSessionPickerLogic : NSObject
+@property(nonatomic) NSArray *selectedUserNames;
+@end
+
+
+@interface MMSessionListView : NSObject
+{
+    MMSessionPickerLogic *m_logic;
+}
+@end
+
+@interface MMSessionPickerWindow : NSWindowController
++ (id)shareInstance;
+- (void)beginSheetForWindow:(id)arg1 completionHandler:(void(^)(id a1))arg2;
+@property(retain, nonatomic) id choosenViewController; // @synthesize
+@property(retain, nonatomic) id listViewController; // @synthesize
+- (void)setShowsGroupChats:(BOOL)arg1;
+- (void)setShowsOfficialAccounts:(BOOL)arg1;
+- (void)setShowsOtherNonhumanChats:(BOOL)arg1;
+- (void)setType:(unsigned long long)arg1;
+
+@end
+
+@interface AFHTTPResponseSerializer : NSObject
+@end
+
+@interface AFURLSessionManager : NSObject
+- (NSURLSessionDownloadTask *)downloadTaskWithRequest:(NSURLRequest *)request
+                                             progress:(void (^)(NSProgress *downloadProgress))downloadProgressBlock
+                                          destination:(NSURL * (^)(NSURL *targetPath, NSURLResponse *response))destination
+                                    completionHandler:(void (^)(NSURLResponse *response, NSURL * filePath, NSError * error))completionHandler;
+- (id)initWithSessionConfiguration:(id)arg1;
+@end
+
+@interface AFHTTPRequestSerializer : NSObject
++ (id)serializer;
+@property(nonatomic) unsigned long long cachePolicy;
+@end
+
+@interface AFHTTPSessionManager : NSObject
++ (AFHTTPSessionManager *)manager;
+@property(retain, nonatomic) AFHTTPRequestSerializer *requestSerializer;
+@property(retain, nonatomic) AFHTTPResponseSerializer *responseSerializer;
+@end
+
+@interface MMURLHandler : NSObject
+- (void)startGetA8KeyWithURL:(id)arg1;
+- (BOOL)openURLWithDefault:(id)arg1;
+@end
+
+@interface UserDefaultsService : NSObject
+- (void)setString:(id)arg1 forKey:(id)arg2;
+- (id)stringForKey:(id)arg1;
 @end

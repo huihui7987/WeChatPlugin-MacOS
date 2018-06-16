@@ -1,5 +1,25 @@
 # 更新日志 
 
+### [v1.7 (2018-05-12)](https://github.com/TKkk-iOSer/WeChatPlugin-MacOS/releases/tag/v1.7)
+
+* 新增不同账户设置不同的自动回复&远程控制
+* 自动回复新增总开关&指定联系人
+* 远程控制新增控制小助手配置
+* 新增一键已读
+* 新增一键清除空回话
+* 新增国际化(支持英、简、繁)
+* 新增关于小助手
+* 新增在线更新小助手
+* 去除微信url转链处理(从此直接打开抖音链接🌝
+* 修复无法免认证登录&多开等bug
+
+### [v1.6.1 (2018-04-07)](https://github.com/TKkk-iOSer/WeChatPlugin-MacOS/releases/tag/v1.6.1)
+
+* 自动回复新增延迟回复
+* 调整置顶模式快捷键
+* 修复bug & 优化代码
+* 更新 README.md 文档 
+
 ### [v1.6 (2018-03-18)](https://github.com/TKkk-iOSer/WeChatPlugin-MacOS/releases/tag/v1.6)
 
 * 新增 Alfred 快捷发送消息 & 打开聊天窗口
